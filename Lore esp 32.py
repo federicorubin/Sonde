@@ -1,54 +1,58 @@
 import serial
-import serial.tools.list_ports
+import time
 
-# 1. Trova la porta seriale (se non la conosci)
-# `serial.tools.list_ports.comports()` restituisce una lista di porte disponibili
-ports = serial.tools.list_ports.comports()
-print("Porte seriali disponibili:")
-for port in ports:
-    print(f"- {port.device} ({port.description})")
+# Configurazione della porta seriale (ad esempio, COM3 su Windows o /dev/ttyUSB0 su Linux)
+# Assicurarsi che la porta seriale sia corretta e che i parametri di comunicazione (baud rate, parity, etc.)
+# corrispondano a quelli configurati sul trasmettitore LoRa Ebyte E32
+PORTA_SERIALE = 'COM3'  # Sostituire con la porta seriale corretta
+BAUD_RATE = 9600
+# ... altre impostazioni seriali (parity, stopbits, etc.) ...
 
-# 2. Sostituisci 'COM3' con la porta seriale corretta del tuo Ebyte E32
-# Potrebbe essere `/dev/ttyUSB0` o simile su Linux/macOS
-# Sostituisci '9600' con il baud rate corretto (es. 9600, 115200)
-port_seriale = 'COM3'
-baud_rate = 9600
+# Nome del file in cui salvare l'immagine decodificata
+NOME_FILE_IMMAGINE = "immagine_ricevuta.png"
 
 try:
-    # 3. Apri la connessione seriale
-    # `timeout` imposta il tempo massimo di attesa per la lettura
-    ser = serial.Serial(port_seriale, baud_rate, timeout=1)
-    print(f"Connessione aperta su {port_seriale} a {baud_rate} baud")
+    # Apri la connessione seriale
+    ser = serial.Serial(PORTA_SERIALE, BAUD_RATE, timeout=1)
+    time.sleep(2)  # Attendi che la connessione seriale si stabilizzi
 
+    print(f"Connesso alla porta seriale {PORTA_SERIALE}")
+
+    # Array per memorizzare i dati grezzi dell'immagine ricevuti
+    dati_immagine = bytearray()
+    dimensione_immagine_prevista = 1024 * 1024 # Esempio: 1MB. Modificare in base alla dimensione effettiva dell'immagine
+
+    print("Inizio ricezione dati immagine...")
     while True:
-        # 4. Leggi i dati dalla porta seriale
-        # `ser.readline()` legge una riga fino al carattere di nuova linea('\n')
-        # Restituisce byte, quindi usa .decode() per convertirli in stringa
-        if ser.in_waiting > 0:
-            linea_byte = ser.readline()
-            try:
-                linea_stringa = linea_byte.decode('utf-8').strip()
-                print(f"Dato ricevuto: {linea_stringa}")
+        # Leggi i dati dalla porta seriale
+        dati_ricevuti = ser.read(1024) # Leggi un blocco di dati alla volta
+        if dati_ricevuti:
+            dati_immagine.extend(dati_ricevuti)
+            print(f"Ricevuti {len(dati_ricevuti)} byte...")
+            
+            # Inserisci qui la logica per decidere quando terminare la ricezione,
+            # ad esempio:
+            # 1. Se la dimensione prevista è raggiunta:
+            #    if len(dati_immagine) >= dimensione_immagine_prevista:
+            #        break
+            # 2. Se il trasmettitore invia un segnale di fine trasmissione (es. un byte speciale)
 
-                # 5. Decodifica i dati (es. se sono stringhe, numeri o altri formati)
-                # Esempio: se i dati sono `{"temperatura": 25.5, "umidita": 60}`
-                # json.loads(linea_stringa)
-                
-                # Esempio: se i dati sono solo un numero intero
-                # valore_numerico = int(linea_stringa)
+            # In questo esempio, attendiamo semplicemente un po' prima di inviare una nuova lettura,
+            # ma è consigliabile implementare una gestione più robusta per terminare la ricezione.
 
-            except UnicodeDecodeError:
-                print(f"Errore di decodifica: {linea_byte}")
-            except Exception as e:
-                print(f"Errore durante l'elaborazione: {e}")
+    print("Ricezione dati completata.")
+
+    # Salva i dati ricevuti in un file immagine
+    with open(NOME_FILE_IMMAGINE, 'wb') as f:
+        f.write(dati_immagine)
+
+    print(f"Immagine salvata come {NOME_FILE_IMMAGINE}")
 
 except serial.SerialException as e:
-    print(f"Errore nella porta seriale: {e}")
+    print(f"Errore seriale: {e}")
 except Exception as e:
     print(f"Si è verificato un errore: {e}")
-
 finally:
-    # 6. Chiudi la connessione seriale quando termini
-    if 'ser' in locals() and ser.isOpen():
+    if 'ser' in locals() and ser.is_open:
         ser.close()
         print("Porta seriale chiusa.")
