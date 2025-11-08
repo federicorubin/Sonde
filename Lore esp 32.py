@@ -20,12 +20,12 @@ try:
 
     # Array per memorizzare i dati grezzi dell'immagine ricevuti
     dati_immagine = bytearray()
-    dimensione_immagine_prevista = 1024 * 1024 # Esempio: 1MB. Modificare in base alla dimensione effettiva dell'immagine
+    dimensione_immagine_prevista = 640 * 320 # Esempio: 1MB. Modificare in base alla dimensione effettiva dell'immagine
 
     print("Inizio ricezione dati immagine...")
     while True:
         # Leggi i dati dalla porta seriale
-        dati_ricevuti = ser.read(1024) # Leggi un blocco di dati alla volta
+        dati_ricevuti = ser.read(640) # Leggi un blocco di dati alla volta
         if dati_ricevuti:
             dati_immagine.extend(dati_ricevuti)
             print(f"Ricevuti {len(dati_ricevuti)} byte...")
